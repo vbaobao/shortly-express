@@ -7,7 +7,6 @@ var createNewSession = (req, res, next) => {
       return models.Sessions.get({ 'id': packet.insertId });
     })
     .then((newSession) => {
-      console.log('NewSession', newSession);
       req.session = {
         'hash': newSession.hash,
         'id': newSession.id
@@ -33,9 +32,7 @@ module.exports.createSession = (req, res, next) => {
           createNewSession(req, res, next);
         }
 
-        console.log('Original:', session);
         req.session = session;
-        console.log('Saved', req.session);
         next();
       })
       .catch((err) => {
@@ -47,3 +44,16 @@ module.exports.createSession = (req, res, next) => {
 /************************************************************/
 // Add additional authentication middleware functions below
 /************************************************************/
+
+module.exports.verifySession = (req, res, next) => {
+  // Check which route they're going to
+  let path = req.path;
+  // If route is / , /links, or /create AND not signed in, redirect to login
+  if ((path === '/' || path === '/links' || path === '/create') && !models.Sessions.isLoggedIn(req.session)) {
+    res.redirect(301, '/login');
+  } else {
+    res.status(200);
+  }
+  console.log(`accessing ${req.path}`, 'forwarding');
+  next();
+};

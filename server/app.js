@@ -18,6 +18,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 app.use(cookieParser);
 app.use(Auth.createSession);
+app.use(Auth.verifySession);
 
 app.get('/', (req, res) => {
   res.render('index');
@@ -25,6 +26,14 @@ app.get('/', (req, res) => {
 
 app.get('/create', (req, res) => {
   res.render('index');
+});
+
+app.get('/login', (req, res) => {
+  res.render('login');
+});
+
+app.get('/signup', (req, res) => {
+  res.render('signup');
 });
 
 app.get('/links', (req, res, next) => {
@@ -95,6 +104,9 @@ app.post('/login', (req, res, next) => {
       })
       .then((isCorrect) => {
         if (isCorrect) {
+          console.log(req.session);
+          // If successful login store userId in sessions table
+          // Update via models.Sessions.update({hash : req.session.hash},{userId: TO DO})
           res.sendStatus(200);
         } else {
           res.sendStatus(401);
