@@ -42,7 +42,17 @@ app.get('/links', (req, res, next) => {
       res.status(200).send(links);
     })
     .error((error) => {
-      res.status(500).send(error);
+      res.status(500).send(`Error at GET /links ${err.code} | ${err.message}`);
+    });
+});
+
+app.get('/logout', (req, res) => {
+  // Delete current session from database
+  models.Sessions.delete({ hash: req.session.hash })
+    .then(() => {
+      res.cookie('shortlyid', '');
+      res.session = {};
+      res.redirect('/login');
     });
 });
 
@@ -74,7 +84,7 @@ app.post('/links', (req, res, next) => {
       throw link;
     })
     .error((error) => {
-      res.status(500).send(error);
+      res.status(500).send(`Error at POST /links ${err.code} | ${err.message}`);
     })
     .catch((link) => {
       res.status(200).send(link);
@@ -90,30 +100,37 @@ app.post('/signup', (req, res, next) => {
     res.sendStatus(401);
   } else {
     models.Users.create(req.body)
-      .then(() => res.sendStatus(201));
+      .then((newUser) => {
+        models.Sessions.update({ hash: req.session.hash }, { userId: newUser.insertId })
+          .catch(err => console.error(`Error at POST /signup ${err.code} | ${err.message}`));
+        res.redirect('/');
+      })
+      .catch((err) => res.redirect('/signup'));
   }
 });
 
 app.post('/login', (req, res, next) => {
+  var userId;
   if (!req.body.username || !req.body.password) {
-    res.sendStatus(401);
+    res.redirect('/login');
   } else {
     models.Users.get({username: req.body.username})
       .then((targetUser) => {
+        if (!targetUser) { throw 'User not found, redirecting...'; }
+        userId = targetUser.id;
         return models.Users.compare(req.body.password, targetUser.password, targetUser.salt);
       })
       .then((isCorrect) => {
         if (isCorrect) {
-          console.log(req.session);
-          // If successful login store userId in sessions table
-          // Update via models.Sessions.update({hash : req.session.hash},{userId: TO DO})
-          res.sendStatus(200);
+          models.Sessions.update({ hash: req.session.hash }, { userId: userId });
+          res.redirect('/');
         } else {
-          res.sendStatus(401);
+          res.redirect('/login');
         }
       })
       .catch((err) => {
-        console.error(`An error has occurred ${err.code} | ${err.message}`);
+        console.error('Redirecting to /login while attempting POST /login. ');
+        res.redirect('/login');
       });
   }
 });

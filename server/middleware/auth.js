@@ -30,10 +30,10 @@ module.exports.createSession = (req, res, next) => {
       .then((session) => {
         if (!session) {
           createNewSession(req, res, next);
+        } else {
+          req.session = session;
+          next();
         }
-
-        req.session = session;
-        next();
       })
       .catch((err) => {
         console.error('Error retrieving session information: ', err);
@@ -50,10 +50,9 @@ module.exports.verifySession = (req, res, next) => {
   let path = req.path;
   // If route is / , /links, or /create AND not signed in, redirect to login
   if ((path === '/' || path === '/links' || path === '/create') && !models.Sessions.isLoggedIn(req.session)) {
-    res.redirect(301, '/login');
+    res.redirect('/login');
   } else {
     res.status(200);
+    next();
   }
-  console.log(`accessing ${req.path}`, 'forwarding');
-  next();
 };
