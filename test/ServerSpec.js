@@ -477,6 +477,40 @@ describe('', function() {
           done();
         });
       });
+
+      it('allows multiple session hashes for 1 user (can log in from multiple machines)', function (done) {
+        var requestWithoutCookie1 = httpMocks.createRequest();
+        var response1 = httpMocks.createResponse();
+        var username = 'BillZito';
+
+        db.query('INSERT INTO users (username) VALUES (?)', username, function(error, results) {
+          if (error) { return done(error); }
+          var userId = results.insertId;
+
+          createSession(requestWithoutCookie1, response1, function() {
+            var hash1 = requestWithoutCookie1.session.hash;
+            db.query('UPDATE sessions SET userId = ? WHERE hash = ?', [userId, hash1], function(error, result) {
+              var secondResponse1 = httpMocks.createResponse();
+              var requestWithCookies1 = httpMocks.createRequest();
+              requestWithCookies1.cookies.shortlyid = hash1;
+
+              var requestWithoutCookie2 = httpMocks.createRequest();
+              var response2 = httpMocks.createResponse();
+
+              createSession(requestWithoutCookie2, response2, function () {
+                var hash2 = requestWithoutCookie2.session.hash;
+                db.query('UPDATE sessions SET userId = ? WHERE hash = ?', [userId, hash2], function (error, result) {
+
+                  db.query('SELECT COUNT(userID) AS BillZito FROM sessions WHERE userId = ?', [userId], function (err, res) {
+                    expect(res[0].BillZito).to.equal(2);
+                    done();
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
     });
   });
 
@@ -568,6 +602,20 @@ describe('', function() {
         });
       });
     });
+
+    it('logging out redirects to /login page', function(done) {
+      addUser(function(err, res, body) {
+        if (err) { return done(err); }
+        var cookies = cookieJar.getCookies('http://127.0.0.1:4568/');
+        var cookieValue = cookies[0].value;
+
+        requestWithSession('http://127.0.0.1:4568/logout', function(error, response, resBody) {
+          if (error) { return done(error); }
+          expect(response.req.path).to.equal('/login');
+          done();
+        });
+      });
+    });
   });
 
   describe('Privileged Access:', function() {
@@ -593,6 +641,24 @@ describe('', function() {
         if (error) { return done(error); }
         expect(res.req.path).to.equal('/login');
         done();
+      });
+    });
+
+    it('Does not redirect to login when a valid short link is used', function (done) {
+      var link = {
+        url: 'http://www.google.com/chrome',
+        title: 'Google',
+        baseUrl: 'http://127.0.0.1:4568',
+        code: '2387f'
+      };
+
+      db.query('INSERT INTO links SET ?', link, (err, res) => {
+        request('http://127.0.0.1:4568/2387f', function(error, res, body) {
+          if (error) { return done(error); }
+          expect(res.req.path).to.not.equal('/login');
+          expect(res.req.host).to.equal('www.google.com');
+          done();
+        });
       });
     });
   });
