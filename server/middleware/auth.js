@@ -8,10 +8,10 @@ var createNewSession = (req, res, next) => {
     })
     .then((newSession) => {
       req.session = {
-        'hash': newSession.hash,
+        'hash': newSession.data,
         'id': newSession.id
       };
-      res.cookie('shortlyid', newSession.hash);
+      res.cookie('shortlyid', newSession.data);
       next();
     })
     .catch((err) => {
@@ -25,12 +25,15 @@ module.exports.createSession = (req, res, next) => {
   if (!req.cookies.shortlyid) {
     createNewSession(req, res, next);
   } else {
-    hash = req.cookies.shortlyid;
-    models.Sessions.get({hash})
+    data = req.cookies.shortlyid;
+    models.Sessions.get({data})
       .then((session) => {
         if (!session) {
           createNewSession(req, res, next);
         } else {
+          // signed Cookie check, apply secret
+          // hash(session.data + secret) === session.hash
+          models.Sessions.compare(session.data, session.hash);
           req.session = session;
           next();
         }
