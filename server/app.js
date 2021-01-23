@@ -105,7 +105,7 @@ app.post('/signup', (req, res, next) => {
           .catch(err => console.error(`Error at POST /signup ${err.code} | ${err.message}`));
         res.redirect('/');
       })
-      .catch((err) => res.redirect('/signup'));
+      .catch((err) => res.redirect('/signup?errcode=1'));
   }
 });
 
@@ -125,12 +125,13 @@ app.post('/login', (req, res, next) => {
           models.Sessions.update({ hash: req.session.hash }, { userId: userId });
           res.redirect('/');
         } else {
-          res.redirect('/login');
+          // If incorrect login
+          res.redirect('/login?errcode=2');
         }
       })
       .catch((err) => {
         console.error('Redirecting to /login while attempting POST /login. ');
-        res.redirect('/login');
+        res.redirect('/login?errcode=2');
       });
   }
 });

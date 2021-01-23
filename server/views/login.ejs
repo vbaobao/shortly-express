@@ -14,4 +14,14 @@
 </form>
 <p>
   <a href="/signup">Create an Account &rarr;</a>
+  <h2 style='display: none;' class='error'>Username/password entered is incorrect.</h2>
 <p>
+
+<script>
+    var urlParams = new URLSearchParams(window.location.search);
+    const errCode = Number(urlParams.get('errcode'));
+    console.log(typeof errCode);
+    if (errCode === 2) {
+      $('.error').attr('style', 'display: block');
+    }
+  </script>

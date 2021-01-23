@@ -14,4 +14,14 @@
 </form>
 <p>
   <a href="/login">Login to your account &rarr;</a>
+  <h2 style='display: none;' class='error'>Username already exists!</h2>
 <p>
+
+  <script>
+    var urlParams = new URLSearchParams(window.location.search);
+    const errCode = Number(urlParams.get('errcode'));
+    console.log(typeof errCode);
+    if (errCode === 1) {
+      $('.error').attr('style', 'display: block');
+    }
+  </script>
